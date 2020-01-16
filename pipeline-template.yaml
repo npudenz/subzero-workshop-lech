@@ -37,6 +37,12 @@ Parameters:
       - eu-west-2
       - eu-central-1
 
+  DeploymentRegion2:
+    Type: String
+    Description: Secondary deployment region.
+    AllowedValues:
+      - us-east-2
+
 Metadata:
 
   AWS::CloudFormation::Interface:
@@ -155,7 +161,7 @@ Resources:
           - Type: PLAINTEXT
             Name: TARGET_REGIONS
             Value:
-              Fn::Join: [ ' ', [!Ref DeploymentRegion1]]
+              Fn::Join: [ ' ', [!Ref DeploymentRegion1, !Ref DeploymentRegion2]]
       LogsConfig:
         CloudWatchLogs:
           Status: ENABLED
@@ -233,6 +239,23 @@ Resources:
                 StackName: !Sub ${AppName}-subzero-workshop
                 TemplatePath: !Sub 'BuildArtifact::packaged-${DeploymentRegion1}.yaml'
               RunOrder: 1
+            - Name: !Ref DeploymentRegion2
+              Region: !Ref DeploymentRegion2
+              InputArtifacts:
+                - Name: BuildArtifact
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RoleArn: !GetAtt CloudFormationRole.Arn
+              Configuration:
+                ActionMode: CREATE_UPDATE
+                Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                StackName: !Sub ${AppName}-subzero-workshop
+                TemplatePath: !Sub 'BuildArtifact::packaged-${DeploymentRegion2}.yaml'
+              RunOrder: 2
 
   PipelineWebHook:
     Type: AWS::CodePipeline::Webhook
